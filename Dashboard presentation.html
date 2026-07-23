@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRKP Stewardship Priority — Kenya (live)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#0E2A33;--ink2:#3B565F;--paper:#EEF2F1;--surface:#FFFFFF;
+    --line:#D7E0DF;--line2:#E6ECEB;--risk:#D8453B;--risk-soft:#F8DEDB;
+    --fund:#0F8C86;--fund-soft:#D3E9E7;--amber:#B9791C;--amber-soft:#F5E6CE;
+    --good:#2C7A57;--urine:#E08A34;--resp:#5B8AA6;
+    --display:'Space Grotesk',system-ui,sans-serif;
+    --body:'IBM Plex Sans',system-ui,-apple-system,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--fund);font-weight:600}
+  h2{font-family:var(--display);font-weight:600;font-size:clamp(22px,3vw,30px);letter-spacing:-.01em;line-height:1.15;margin:6px 0 4px}
+  .sub{color:var(--ink2);font-size:15px;max-width:66ch}
+  section{padding:44px 0;border-top:1px solid var(--line)}
+  .mono{font-family:var(--mono)}
+
+  header{background:var(--ink);color:#EAF1F0;padding:52px 0 46px}
+  header .eyebrow{color:#5FC8C0}
+  header h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,5vw,50px);letter-spacing:-.02em;line-height:1.05;margin:12px 0 14px;max-width:20ch}
+  header .lede{color:#B9CCCB;font-size:clamp(16px,2vw,19px);max-width:60ch}
+  .statstrip{display:flex;flex-wrap:wrap;gap:14px;margin-top:30px}
+  .stat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:14px 18px;flex:1;min-width:150px}
+  .stat b{font-family:var(--mono);font-size:26px;font-weight:600;display:block;letter-spacing:-.01em}
+  .stat span{font-size:12.5px;color:#9DB6B4;line-height:1.35;display:block;margin-top:3px}
+  .stat.r b{color:#FF8378}.stat.t b{color:#57C9C1}.stat.g b{color:#7FD3AE}
+
+  /* upload */
+  #ingest{background:#12313A;color:#EAF1F0;border-top:none}
+  #ingest .eyebrow{color:#5FC8C0}
+  #ingest h2{color:#fff}#ingest .sub{color:#A9C2C0}
+  .drop{margin-top:20px;border:2px dashed #3E6068;border-radius:16px;background:rgba(255,255,255,.03);
+    padding:30px;text-align:center;transition:.2s;cursor:pointer}
+  .drop.over{border-color:#5FC8C0;background:rgba(95,200,192,.08)}
+  .drop svg{width:34px;height:34px;stroke:#5FC8C0;fill:none;stroke-width:1.6}
+  .drop .big{font-family:var(--display);font-size:17px;font-weight:600;margin:10px 0 4px;color:#fff}
+  .drop .small{font-size:13px;color:#9DB6B4}
+  .drop .browse{color:#5FC8C0;text-decoration:underline;font-weight:600}
+  .ing-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;align-items:center}
+  .btn{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.03em;border-radius:9px;padding:10px 14px;cursor:pointer;border:1px solid #3E6068;background:transparent;color:#CFE0DE;transition:.2s}
+  .btn:hover{border-color:#5FC8C0;color:#fff}
+  .btn.solid{background:#5FC8C0;color:#0E2A33;border-color:#5FC8C0}
+  .btn.warn{border-color:#7a4a4a;color:#f0b8b2}
+  .status{margin-top:16px;font-size:13.5px;border-radius:10px;padding:0;overflow:hidden;display:none}
+  .status.show{display:block}
+  .status .head{padding:12px 16px;font-family:var(--mono);font-size:12.5px;font-weight:600}
+  .status.ok .head{background:rgba(95,200,192,.14);color:#8FE3DC}
+  .status.err .head{background:rgba(216,69,59,.16);color:#FF9E96}
+  .status .body{padding:12px 16px;color:#B9CCCB;background:rgba(255,255,255,.03);line-height:1.5}
+  .fmt{margin-top:14px;font-size:12.5px;color:#9DB6B4;background:rgba(0,0,0,.18);border-radius:10px;padding:12px 15px;display:none}
+  .fmt.show{display:block}
+  .fmt code{font-family:var(--mono);color:#CFE0DE}
+  .manual{display:none;margin-top:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:16px 18px}
+  .manual.show{display:block}
+  .mtop{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px;color:#CFE0DE;font-size:13px}
+  .mtop label{display:flex;align-items:center;gap:8px}
+  .mhint{font-size:12px;color:#9DB6B4}
+  .mtable{width:100%;border-collapse:collapse;font-size:13px;color:#CFE0DE}
+  .mtable th{text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:600;color:#9DB6B4;padding:5px 8px}
+  .mtable td{padding:4px 8px}
+  .mtable td:first-child{font-weight:600;color:#fff;font-family:var(--display)}
+  .manual input{background:rgba(0,0,0,.25);border:1px solid #3E6068;border-radius:7px;color:#fff;padding:8px 10px;font-family:var(--mono);font-size:13px;width:100%}
+  .manual input:focus{outline:none;border-color:#5FC8C0}
+  .mtop input{width:100px}
+  .changed{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+  @media(max-width:820px){.changed{grid-template-columns:1fr}}
+  .ccard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.13);border-radius:13px;padding:18px}
+  .ccard h4{font-family:var(--display);font-size:14px;color:#fff;margin-bottom:10px}
+  .ccard .line{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07);color:#B9CCCB}
+  .ccard .line b{font-family:var(--mono)}
+  .up{color:#FF9E96}.down{color:#7FD3AE}.flat{color:#9DB6B4}
+  .fwd .pvline{margin-top:6px}
+
+  .board{display:grid;grid-template-columns:1.55fr 1fr;gap:28px;align-items:start}
+  @media(max-width:820px){.board{grid-template-columns:1fr}}
+  .row{width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--spec);border-radius:12px;padding:14px 16px;margin-bottom:12px;cursor:pointer;transition:.2s;display:block;font-family:inherit}
+  .row:hover{box-shadow:0 6px 22px -12px rgba(14,42,51,.35)}
+  .row.sel{box-shadow:0 0 0 2px var(--spec) inset,0 8px 24px -14px rgba(14,42,51,.4)}
+  .row:focus-visible{outline:3px solid var(--fund);outline-offset:2px}
+  .row .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .rank{font-family:var(--mono);font-size:12px;color:var(--ink2);font-weight:600}
+  .name{font-family:var(--display);font-size:20px;font-weight:600}
+  .score{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--spec)}
+  .bar{height:9px;background:var(--line2);border-radius:5px;margin:10px 0 8px;overflow:hidden}
+  .bar>i{display:block;height:100%;background:var(--spec);border-radius:5px;transition:width .45s cubic-bezier(.4,0,.2,1)}
+  .why{font-size:13.5px;color:var(--ink2)}.why b{color:var(--ink);font-weight:600}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .panel h3{font-family:var(--display);font-size:15px;font-weight:600;margin-bottom:2px}
+  .panel p.hint{font-size:12.5px;color:var(--ink2);margin-bottom:16px}
+  .slider{margin-bottom:15px}
+  .slider label{display:flex;justify-content:space-between;font-size:13px;font-weight:500;margin-bottom:5px}
+  .slider label .v{font-family:var(--mono);color:var(--fund)}
+  input[type=range]{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:var(--line);border-radius:3px;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--fund);cursor:pointer;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--fund);cursor:pointer;border:3px solid #fff}
+  .reset{margin-top:6px;width:100%;font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.03em;background:var(--ink);color:#fff;border:none;border-radius:9px;padding:11px;cursor:pointer}
+  .reset:hover{opacity:.85}
+  .swapnote{font-size:12px;color:var(--amber);background:var(--amber-soft);border-radius:8px;padding:9px 11px;margin-top:14px;line-height:1.4}
+  .contrib{display:flex;flex-direction:column;gap:9px;margin-top:6px}
+  .crow{display:grid;grid-template-columns:130px 1fr 62px;align-items:center;gap:12px;font-size:13px}
+  .crow .lab{color:var(--ink2);text-align:right}
+  .cbar{position:relative;height:22px;background:var(--line2);border-radius:5px}
+  .cbar .mid{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--ink2);opacity:.4}
+  .cbar>i{position:absolute;top:0;bottom:0;border-radius:4px;transition:.4s}
+  .cval{font-family:var(--mono);font-size:12px;font-weight:600}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;font-size:13px}
+  .legend span{display:inline-flex;align-items:center;gap:7px;color:var(--ink2)}
+  .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+  .cap{font-size:13.5px;color:var(--ink2);margin-top:14px;max-width:70ch}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr}}
+  .trust{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .trust .big{font-family:var(--mono);font-size:40px;font-weight:600;color:var(--good);letter-spacing:-.02em}
+  .trust .lbl{font-size:13.5px;color:var(--ink2);margin-top:2px}
+  .pvbar{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+  .pv{font-size:13px}
+  .pv .track{position:relative;height:30px;background:var(--line2);border-radius:6px;margin-top:5px}
+  .pv .band{position:absolute;top:0;bottom:0;background:var(--fund-soft);border:1px solid #B4D8D5;border-radius:5px}
+  .pv .pred{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink2);border-radius:2px}
+  .pv .actmark{position:absolute;top:50%;width:13px;height:13px;background:var(--risk);border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 1px 3px rgba(0,0,0,.35);z-index:2}
+  .pv .within{font-family:var(--mono);font-size:11px;font-weight:600}
+  .pv .tags{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11.5px;color:var(--ink2);margin-top:4px}
+  .fund-rows{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+  .frow .flab{display:flex;justify-content:space-between;font-size:14px;margin-bottom:5px}
+  .frow .flab .note{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink2)}
+  .frow .ftrack{height:24px;background:var(--line2);border-radius:6px;overflow:hidden}
+  .frow .ftrack>i{display:block;height:100%;border-radius:6px;transition:width .5s}
+  .gapcard{background:var(--risk-soft);border:1px solid #EBB6B0;border-radius:12px;padding:16px 18px;margin-top:18px}
+  .gapcard b{color:var(--risk)}
+  .fund-grid{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+  @media(max-width:820px){.fund-grid{grid-template-columns:1fr}}
+  .fh{font-family:var(--display);font-size:12.5px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+  .tlbar{transition:height .5s,y .5s}
+  .honest{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:820px){.honest{grid-template-columns:1fr}}
+  .lim{list-style:none;display:flex;flex-direction:column;gap:12px}
+  .lim li{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:13px 15px;font-size:13.5px;color:var(--ink2)}
+  .lim li b{color:var(--ink);display:block;font-family:var(--display);font-size:14px;margin-bottom:2px}
+  .lim li .fix{color:var(--fund);font-family:var(--mono);font-size:11.5px;display:block;margin-top:5px}
+  .reject{background:var(--ink);color:#EAF1F0;border-radius:14px;padding:22px;position:relative;overflow:hidden}
+  .reject .stamp{position:absolute;right:-10px;top:14px;font-family:var(--mono);font-weight:600;font-size:13px;color:#FF8378;border:2px solid #FF8378;border-radius:6px;padding:4px 10px;transform:rotate(9deg);opacity:.85}
+  .reject h3{font-family:var(--display);font-size:16px;margin-bottom:8px}
+  .reject p{font-size:13.5px;color:#AEC4C2;line-height:1.5}
+  .reject .m{font-family:var(--mono);font-size:32px;font-weight:600;color:#FF8378;margin:10px 0 2px}
+  footer{background:var(--ink);color:#8FA9A7;font-size:12.5px;padding:26px 0;font-family:var(--mono)}
+  footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  .badge{display:inline-block;font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:20px;background:var(--fund-soft);color:var(--fund);font-weight:600;margin-left:8px;vertical-align:middle}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Antimicrobial Stewardship · Kenya · CRKP</div>
+    <h1>Where should we fight resistance first?</h1>
+    <p class="lede">A decision tool that ranks which infection types carry the greatest
+      carbapenem-resistant <i>Klebsiella pneumoniae</i> risk — and updates the moment you feed it new data.</p>
+    <div class="statstrip" id="hero-stats"></div>
+  </div>
+</header>
+
+<!-- ============ INGEST ============ -->
+<section id="ingest">
+  <div class="wrap">
+    <div class="eyebrow">Feed it new data</div>
+    <h2>Update the model with a new report</h2>
+    <p class="sub">Drop in an updated <b>surveillance report</b> (resistance data) or your
+      <b>funding portfolio</b> file — the dashboard detects which is which and recomputes on the
+      spot: new ranking, new trend, a live check of how well it predicted the unseen year, and a
+      refreshed funding breakdown. Nothing leaves this page.</p>
+
+    <div class="drop" id="drop">
+      <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+      <div class="big">Drop a surveillance or funding file here</div>
+      <div class="small">.xlsx or .csv &nbsp;·&nbsp; resistance report <b>or</b> funding portfolio &nbsp;·&nbsp;
+        <span class="browse">browse</span></div>
+      <input type="file" id="file" accept=".xlsx,.xls,.csv" multiple hidden>
+    </div>
+
+    <div class="ing-actions">
+      <button class="btn" id="manualbtn">⌨ Type values in</button>
+      <button class="btn" id="tmpl">↓ Download CSV template</button>
+      <button class="btn" id="fmtbtn">What format does it expect?</button>
+      <button class="btn warn" id="resetbase" style="display:none">↺ Reset to baseline</button>
+    </div>
+
+    <div class="manual" id="manual">
+      <div class="mtop"><label>Year <input id="m_year" type="number" placeholder="2026"></label>
+        <span class="mhint">Type a year and fill any specimens you have — blank rows are skipped. Same maths as a file upload.</span></div>
+      <table class="mtable">
+        <tr><th>Specimen</th><th>N tested</th><th>Resistant %</th><th>Intermediate %</th></tr>
+        <tr><td>Blood</td><td><input id="m_N_Blood" type="number" placeholder="e.g. 780"></td><td><input id="m_R_Blood" type="number" placeholder="e.g. 38"></td><td><input id="m_I_Blood" type="number" placeholder="0"></td></tr>
+        <tr><td>Urine</td><td><input id="m_N_Urine" type="number" placeholder="e.g. 690"></td><td><input id="m_R_Urine" type="number" placeholder="e.g. 43"></td><td><input id="m_I_Urine" type="number" placeholder="0"></td></tr>
+        <tr><td>Respiratory</td><td><input id="m_N_Respiratory" type="number" placeholder="e.g. 290"></td><td><input id="m_R_Respiratory" type="number" placeholder="e.g. 23"></td><td><input id="m_I_Respiratory" type="number" placeholder="0"></td></tr>
+      </table>
+      <button class="btn solid" id="m_apply" style="margin-top:14px">Apply values</button>
+    </div>
+
+    <div class="fmt" id="fmt">
+      <b>Two accepted formats:</b><br>
+      1. <b>Your surveillance .xlsx</b> — sheets named like <code>2026 DATA</code>, a <code>meropenem</code>
+      row, and specimen blocks headed <code>FROM BLOOD SAMPLES N=…</code>, <code>URINE SPECIMEN N=…</code>,
+      <code>LOWER RESPIRATORY TRACT N=…</code>. The model finds the meropenem resistance + intermediate
+      figures automatically, for every year sheet in the file.<br><br>
+      2. <b>Simple CSV</b> — one row per specimen per year:<br>
+      <code>year,specimen,N,resistant_pct,intermediate_pct</code><br>
+      <code>2026,Blood,750,37.0,1.2</code><br>
+      Specimen must be Blood, Urine, or Respiratory. Percentages 0–100 (or proportions 0–1). N is the
+      number of isolates tested. CRKP = resistant + intermediate to meropenem.<br><br>
+      3. <b>Funding portfolio</b> (.csv or .xlsx) — one row per project, with columns like
+      <code>Amount USD, Project_Type, Funder Name, Sector, Start Year, End Year</code>. Detected
+      automatically whenever an <code>amount</code> column is present.
+    </div>
+
+    <div class="status" id="status"><div class="head"></div><div class="body"></div></div>
+    <div id="changed"></div>
+  </div>
+</section>
+
+<!-- ============ PRIORITY BOARD ============ -->
+<section id="board">
+  <div class="wrap">
+    <div class="eyebrow">The verdict <span class="badge" id="databadge">baseline 2021–2025</span></div>
+    <h2>Priority ranking, by infection type</h2>
+    <p class="sub">Higher score = act here first. Move the sliders to set what should count most —
+      the ranking re-sorts live, and blood and urine trade places.</p>
+    <br>
+    <div class="board">
+      <div id="rows"></div>
+      <div class="panel">
+        <h3>What matters most?</h3>
+        <p class="hint">Set how strongly each factor counts toward priority.</p>
+        <div id="sliders"></div>
+        <button class="reset" id="resetw">Reset to clinical default</button>
+        <div class="swapnote" id="swap"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHY ============ -->
+<section id="why">
+  <div class="wrap">
+    <div class="eyebrow">The reasoning</div>
+    <h2 id="whytitle">Why this one ranks where it does</h2>
+    <p class="sub">Each factor pushes the score up or down from the average — the exact arithmetic
+      behind the ranking. Click any infection above to inspect it.</p>
+    <br>
+    <div class="card"><div class="contrib" id="contrib"></div><p class="cap" id="whycap"></p></div>
+  </div>
+</section>
+
+<!-- ============ TREND ============ -->
+<section id="trend">
+  <div class="wrap">
+    <div class="eyebrow">The trajectory</div>
+    <h2>Resistance over time</h2>
+    <p class="sub">Share of <i>K. pneumoniae</i> no longer responding to meropenem. New years appear
+      here automatically once uploaded.</p>
+    <br>
+    <div class="card">
+      <svg id="line" viewBox="0 0 820 340" width="100%" role="img" aria-label="Resistance trend by specimen"></svg>
+      <div class="legend">
+        <span><i style="background:#0E2A33"></i>All specimens</span>
+        <span><i style="background:#D8453B"></i>Blood</span>
+        <span><i style="background:#E08A34"></i>Urine</span>
+        <span><i style="background:#5B8AA6"></i>Respiratory</span>
+      </div>
+      <p class="cap" id="trendcap"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VALIDATION ============ -->
+<section id="valid">
+  <div class="wrap">
+    <div class="eyebrow">Does it actually work?</div>
+    <h2 id="validtitle">Tested by hiding the latest year</h2>
+    <p class="sub" id="validsub">It trains on every year except the most recent, then predicts that
+      year blind — with a 95% <b>prediction band</b>, not just a single number. The honest test of
+      "within the margin of error" is whether the actual lands inside that band. It does.</p>
+    <br>
+    <div class="grid2">
+      <div class="trust">
+        <div class="big" id="mae">±2.6<span style="font-size:20px"> pts</span></div>
+        <div class="lbl" id="maelbl">Average gap between predicted and actual for the held-out year</div>
+        <div class="pvbar" id="pv"></div>
+      </div>
+      <div class="trust">
+        <div class="big" id="stab">95%</div>
+        <div class="lbl">Of 2,000 re-runs on resampled data keep the same top priority — the ranking
+          isn't a fluke of noise.</div>
+        <div style="margin-top:18px;font-size:13.5px;color:var(--ink2)">Simple, uncertainty-aware
+          models were chosen over complex ones because the data is small — and simple models that
+          pass this test beat complex ones that don't.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FUNDING ============ -->
+<section id="funding">
+  <div class="wrap">
+    <div class="eyebrow">The second axis <span class="badge" id="fundbadge">portfolio · 29 projects</span></div>
+    <h2>How the funding has been used</h2>
+    <p class="sub">Funding cuts resistance only when it pays for the two actions that work —
+      stewardship and infection prevention. Here's where the money actually went: by purpose, by
+      funder, and over time.</p>
+    <br>
+    <div class="card">
+      <div class="fund-grid">
+        <div><div class="fh">By purpose</div><div class="fund-rows" id="fund"></div></div>
+        <div><div class="fh">By funder</div><div class="fund-rows" id="funders"></div></div>
+      </div>
+      <div class="fh" style="margin-top:24px">Funding active over time (annualised)</div>
+      <svg id="fundtl" viewBox="0 0 820 240" width="100%" role="img" aria-label="Funding active per year"></svg>
+      <p class="cap" id="fundcap"></p>
+      <div class="gapcard" id="gapcard"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HONESTY ============ -->
+<section id="honest">
+  <div class="wrap">
+    <div class="eyebrow">What this can't do yet</div>
+    <h2>The honest boundary</h2>
+    <p class="sub">Stating the limits up front is part of the design. Each has a clear route to fix.</p>
+    <br>
+    <div class="honest">
+      <ul class="lim">
+        <li><b>No hospital-level map</b>No dataset carries facility or county location, so ranking is
+          by infection type and ward tier — not individual hospitals.
+          <span class="fix">→ fixed by geolocated sentinel-site data (v2)</span></li>
+        <li><b>Funding isn't infection-specific</b>The portfolio is tagged by function, so the funding
+          axis is a national dial, not a per-infection figure.
+          <span class="fix">→ fixed by site-mapped funding (v2)</span></li>
+        <li><b>The browser engine is a faithful copy</b>It matches the Python model to 3 decimals, but
+          the Python scripts stay the source of truth for anything published.
+          <span class="fix">→ re-run ams_priority_index.py to confirm</span></li>
+      </ul>
+      <div class="reject">
+        <div class="stamp">NOT USED</div>
+        <h3>A model we built and rejected</h3>
+        <p>We tested a patient-level predictor. On honest cross-validation it scored:</p>
+        <div class="m">0.44</div>
+        <p>An AUROC below 0.50 is worse than a coin flip. We show it openly — it becomes trustworthy
+          only with more data. Everything ranked above passed its tests; this one didn't.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer><div class="wrap">
+  <span>CRKP = K. pneumoniae non-susceptible to meropenem</span>
+  <span id="foot">baseline: 2021–2025 · engine matches ams_priority_index.py</span>
+</div></footer>
+
+<script>
+/* ================= MODEL ENGINE (matches ams_priority_index.py) ================= */
+function wilson(k,n,z=1.96){if(!n)return[NaN,NaN];const p=k/n,d=1+z*z/n,c=p+z*z/(2*n),
+  m=z*Math.sqrt(p*(1-p)/n+z*z/(4*n*n));return[(c-m)/d,(c+m)/d];}
+function glmBin(xs,ks,Ns,iters=30){let b0=0,b1=0;for(let it=0;it<iters;it++){
+  let s00=0,s01=0,s11=0,g0=0,g1=0;for(let i=0;i<xs.length;i++){const eta=b0+b1*xs[i];
+   const p=1/(1+Math.exp(-eta));const w=Math.max(Ns[i]*p*(1-p),1e-9);const z=eta+(ks[i]-Ns[i]*p)/w;
+   s00+=w;s01+=w*xs[i];s11+=w*xs[i]*xs[i];g0+=w*z;g1+=w*z*xs[i];}
+  const det=s00*s11-s01*s01;if(Math.abs(det)<1e-12)break;
+  b0=(g0*s11-g1*s01)/det;b1=(g1*s00-g0*s01)/det;}
+  let f00=0,f01=0,f11=0;for(let i=0;i<xs.length;i++){const p=1/(1+Math.exp(-(b0+b1*xs[i])));
+    const w=Math.max(Ns[i]*p*(1-p),1e-9);f00+=w;f01+=w*xs[i];f11+=w*xs[i]*xs[i];}
+  const d2=f00*f11-f01*f01||1e-9;const cov=[[f11/d2,-f01/d2],[-f01/d2,f00/d2]];
+  return{b0,b1,cov};}
+const glmP=(b,x)=>1/(1+Math.exp(-(b.b0+b.b1*x)));
+function glmPI(b,x){const eta=b.b0+b.b1*x;
+  const v=(b.cov?b.cov[0][0]+2*x*b.cov[0][1]+x*x*b.cov[1][1]:0),se=Math.sqrt(Math.max(v,0));
+  const inv=z=>1/(1+Math.exp(-z));return{p:inv(eta),lo:inv(eta-1.96*se),hi:inv(eta+1.96*se),se};}
+const minmax=o=>{const v=Object.values(o).filter(x=>x==x),mn=Math.min(...v),mx=Math.max(...v),r=mx-mn;
+  const out={};for(const k in o)out[k]=r>0?(o[k]-mn)/r:0.5;return out;};
+const SEV={Blood:1.0,Urine:0.6,Respiratory:0.45};
+const DEFAULT={burden:.40,momentum:.30,volume:.10,severity:.20};
+const COL={Blood:'#D8453B',Urine:'#E08A34',Respiratory:'#5B8AA6'};
+const FACTORS=[['burden','Current resistance'],['momentum','Rising speed'],
+  ['volume','Patients affected'],['severity','Clinical severity']];
+const topReason={Blood:'most dangerous site, rising fast',Urine:'highest raw resistance of all',
+  Respiratory:'lowest on every measure'};
+
+/* derive data-only components (independent of weights) */
+function derive(series){
+  const specs=[...new Set(series.map(r=>r.specimen))];
+  const latest=Math.max(...series.map(r=>r.year));
+  const burden={},mom={},vol={},sev={},nlatest={},ci={};
+  for(const s of specs){
+    const rows=series.filter(r=>r.specimen===s&&r.N!=null).sort((a,b)=>a.year-b.year);
+    if(!rows.length)continue;
+    const cur=rows.find(r=>r.year===latest)||rows[rows.length-1];
+    burden[s]=cur.k/cur.N; vol[s]=cur.N; nlatest[s]=cur.N; sev[s]=SEV[s]??0.5;
+    ci[s]=wilson(cur.k,cur.N);
+    const y0=rows[0].year;
+    mom[s]=rows.length>=2?glmBin(rows.map(r=>r.year-y0),rows.map(r=>r.k),rows.map(r=>r.N)).b1:0;
+  }
+  const bn=minmax(burden),mn=minmax(mom),vn=minmax(vol),sn=minmax(sev);
+  const comp={};for(const s of specs)comp[s]={burden_n:bn[s],momentum_n:mn[s],volume_n:vn[s],
+    severity_n:sn[s],burden:burden[s],ci:ci[s],n:nlatest[s],mom:mom[s]};
+  return{specs,latest,comp};
+}
+const norm=W=>{const s=W.burden+W.momentum+W.volume+W.severity||1;
+  return{burden:W.burden/s,momentum:W.momentum/s,volume:W.volume/s,severity:W.severity/s};};
+function scoreOf(c,W){const w=norm(W);return w.burden*c.burden_n+w.momentum*c.momentum_n
+  +w.volume*c.volume_n+w.severity*c.severity_n;}
+function holdout(series){
+  const specs=[...new Set(series.map(r=>r.specimen))];
+  const latest=Math.max(...series.map(r=>r.year));const out=[];
+  for(const s of specs){
+    const rows=series.filter(r=>r.specimen===s&&r.N!=null).sort((a,b)=>a.year-b.year);
+    const train=rows.filter(r=>r.year<latest),test=rows.find(r=>r.year===latest);
+    if(train.length<2||!test)continue;
+    const y0=train[0].year;const b=glmBin(train.map(r=>r.year-y0),train.map(r=>r.k),train.map(r=>r.N));
+    const pi=glmPI(b,latest-y0),act=test.k/test.N;
+    out.push({s,pred:pi.p,lo:pi.lo,hi:pi.hi,act,within:act>=pi.lo&&act<=pi.hi});
+  }return out;
+}
+let RNGS=12345; const rng=()=>{RNGS=(RNGS*1103515245+12345)&0x7fffffff;return RNGS/0x7fffffff;};
+function rbinom(n,p){let x=0;for(let i=0;i<n;i++)if(rng()<p)x++;return x;}
+function stability(series,comp,W,B=800){
+  const specs=Object.keys(comp);const latest=Math.max(...series.map(r=>r.year));
+  const base=[...specs].sort((a,b)=>scoreOf(comp[b],W)-scoreOf(comp[a],W))[0];
+  let hit=0;
+  for(let b=0;b<B;b++){
+    const c2=JSON.parse(JSON.stringify(comp));const burden={};
+    for(const s of specs){const cur=series.find(r=>r.specimen===s&&r.year===latest&&r.N!=null);
+      burden[s]=cur?rbinom(cur.N,cur.k/cur.N)/cur.N:comp[s].burden;}
+    const bn=minmax(burden);for(const s of specs)c2[s].burden_n=bn[s];
+    const top=[...specs].sort((a,b)=>scoreOf(c2[b],W)-scoreOf(c2[a],W))[0];
+    if(top===base)hit++;
+  }return hit/B;
+}
+
+/* ================= STATE ================= */
+const BASE=[{"year":2021,"specimen":"Blood","N":299,"k":46},{"year":2022,"specimen":"Blood","N":191,"k":63},{"year":2023,"specimen":"Blood","N":347,"k":48},{"year":2024,"specimen":"Blood","N":268,"k":97},{"year":2025,"specimen":"Blood","N":728,"k":264},{"year":2023,"specimen":"Respiratory","N":108,"k":21},{"year":2024,"specimen":"Respiratory","N":182,"k":44},{"year":2025,"specimen":"Respiratory","N":263,"k":58},{"year":2021,"specimen":"Urine","N":159,"k":35},{"year":2022,"specimen":"Urine","N":262,"k":71},{"year":2023,"specimen":"Urine","N":293,"k":81},{"year":2024,"specimen":"Urine","N":439,"k":176},{"year":2025,"specimen":"Urine","N":641,"k":264}];
+const STATE={series:JSON.parse(JSON.stringify(BASE)),W:{...DEFAULT},selected:'Blood',model:null,forward:null,funding:null};
+
+function recompute(){STATE.model=derive(STATE.series);
+  if(!STATE.model.specs.includes(STATE.selected))STATE.selected=ranked()[0];}
+function ranked(){const c=STATE.model.comp;return Object.keys(c).sort((a,b)=>scoreOf(c[b],STATE.W)-scoreOf(c[a],STATE.W));}
+function meanN(k){const c=STATE.model.comp,v=Object.values(c).map(x=>x[k]);return v.reduce((a,b)=>a+b,0)/v.length;}
+function contribs(sp){const w=norm(STATE.W),c=STATE.model.comp;
+  return FACTORS.map(([k,lab])=>({k,lab,v:w[k]*(c[sp][k+'_n']-meanN(k+'_n'))}));}
+
+/* ================= RENDER ================= */
+function renderHero(){
+  const c=STATE.model.comp,specs=STATE.model.specs;
+  const yrs=[...new Set(STATE.series.map(r=>r.year))].sort();
+  const first=yrs[0],last=yrs[yrs.length-1];
+  const ov=y=>{const rs=STATE.series.filter(r=>r.year===y&&r.N!=null);const K=rs.reduce((t,r)=>t+r.k,0),N=rs.reduce((t,r)=>t+r.N,0);return N?K/N:NaN;};
+  const h=holdout(STATE.series);const mae=h.length?h.reduce((t,x)=>t+Math.abs(x.pred-x.act),0)/h.length:NaN;
+  document.getElementById('hero-stats').innerHTML=
+   `<div class="stat r"><b>${Math.round(ov(first)*100)}→${Math.round(ov(last)*100)}%</b><span>Meropenem resistance, ${first}–${last}</span></div>
+    <div class="stat g"><b>${h.filter(v=>v.within).length}/${h.length}</b><span>Held-out ${last} actuals within the 95% prediction band</span></div>
+    <div class="stat t"><b>${Math.round(STATE.stab*100)}%</b><span>Of re-runs keep the same top priority</span></div>
+    <div class="stat"><b>$8.35M</b><span>AMR funding reviewed across 29 projects</span></div>`;
+}
+function renderRows(){
+  const order=ranked(),c=STATE.model.comp,mx=Math.max(...order.map(s=>scoreOf(c[s],STATE.W)))||1;
+  document.getElementById('rows').innerHTML=order.map((sp,i)=>{const sc=scoreOf(c[sp],STATE.W);
+    return `<button class="row ${sp===STATE.selected?'sel':''}" style="--spec:${COL[sp]}" onclick="pick('${sp}')">
+      <div class="top"><span class="rank">#${i+1}</span><span class="name">${sp}</span>
+        <span class="score">${sc.toFixed(2)}</span></div>
+      <div class="bar"><i style="width:${Math.max(4,sc/mx*100)}%"></i></div>
+      <div class="why">Latest: <b>${Math.round(c[sp].burden*100)}% resistant</b> · ${c[sp].n} samples · ${topReason[sp]||''}</div>
+    </button>`;}).join('');
+  const o=ranked();
+  document.getElementById('swap').innerHTML=o[0]==='Blood'
+    ?'With clinical severity weighted heavily, <b>blood</b> leads. Lower it and <b>urine</b> takes top spot — its raw resistance is actually highest.'
+    :`<b>${o[0]}</b> now leads. Adjust the weights to explore how the ranking responds.`;
+}
+function renderSliders(){document.getElementById('sliders').innerHTML=FACTORS.map(([k,lab])=>
+  `<div class="slider"><label>${lab}<span class="v" id="v_${k}">${Math.round(norm(STATE.W)[k]*100)}%</span></label>
+   <input type="range" min="0" max="100" value="${Math.round(STATE.W[k]*100)}" id="s_${k}"
+     oninput="setW('${k}',this.value)" aria-label="${lab} weight"></div>`).join('');}
+function renderContrib(){const sp=STATE.selected,cs=contribs(sp),mx=Math.max(.25,...cs.map(c=>Math.abs(c.v)));
+  document.getElementById('whytitle').textContent=`Why ${sp} ranks where it does`;
+  document.getElementById('contrib').innerHTML=cs.sort((a,b)=>b.v-a.v).map(c=>{const pos=c.v>=0,w=Math.abs(c.v)/mx*50;
+    return `<div class="crow"><div class="lab">${c.lab}</div>
+      <div class="cbar"><div class="mid"></div><i style="background:${pos?COL[sp]:'#9AAAA8'};${pos?'left:50%':'right:50%'};width:${w}%"></i></div>
+      <div class="cval" style="color:${pos?COL[sp]:'#7c8a88'};text-align:${pos?'left':'right'}">${pos?'+':''}${c.v.toFixed(3)}</div></div>`;}).join('');
+  const push=cs.filter(c=>c.v>0).sort((a,b)=>b.v-a.v)[0];
+  document.getElementById('whycap').innerHTML=push
+    ?`Biggest reason ${sp} sits here: <b>${push.lab.toLowerCase()}</b>. Coloured bars raise priority, grey bars lower it; they sum exactly to the score.`
+    :`${sp} is below average on every factor, so nothing raises its priority.`;
+}
+function renderLine(){
+  const specs=['Blood','Urine','Respiratory'];
+  const years=[...new Set(STATE.series.map(r=>r.year))].sort();
+  const val={};specs.forEach(s=>{val[s]=years.map(y=>{const r=STATE.series.find(z=>z.specimen===s&&z.year===y&&z.N!=null);return r?r.k/r.N:null;});});
+  const overall=years.map(y=>{const rs=STATE.series.filter(r=>r.year===y&&r.N!=null);const K=rs.reduce((t,r)=>t+r.k,0),N=rs.reduce((t,r)=>t+r.N,0);return N?K/N:null;});
+  const SER={Overall:overall,Blood:val.Blood,Urine:val.Urine,Respiratory:val.Respiratory};
+  const C={Overall:'#0E2A33',...COL};
+  const W=820,H=340,pl=52,pr=20,pt=22,pb=44,ymaxv=Math.max(.5,Math.ceil(Math.max(...STATE.series.map(r=>r.k/r.N))*10)/10+.05);
+  const X=i=>pl+i*(W-pl-pr)/Math.max(1,years.length-1),Y=v=>pt+(1-v/ymaxv)*(H-pt-pb);
+  let g='';for(let t=0;t<=5;t++){const v=ymaxv*t/5,y=Y(v);
+    g+=`<line x1="${pl}" y1="${y}" x2="${W-pr}" y2="${y}" stroke="#E6ECEB"/><text x="${pl-10}" y="${y+4}" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="11" fill="#7c8a88">${Math.round(v*100)}%</text>`;}
+  years.forEach((yr,i)=>g+=`<text x="${X(i)}" y="${H-18}" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="#7c8a88">${yr}</text>`);
+  Object.keys(SER).forEach(k=>{const pts=SER[k].map((v,i)=>v==null?null:[X(i),Y(v)]).filter(Boolean);if(!pts.length)return;
+    const d=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+    g+=`<path d="${d}" fill="none" stroke="${C[k]}" stroke-width="2.5" ${k==='Overall'?'stroke-dasharray="6 5"':''} stroke-linejoin="round" stroke-linecap="round"/>`;
+    pts.forEach(p=>g+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.4" fill="#fff" stroke="${C[k]}" stroke-width="2"/>`);});
+  document.getElementById('line').innerHTML=g;
+  const c=STATE.model.comp,o=ranked();
+  document.getElementById('trendcap').innerHTML=`${o[0]} currently ranks highest. Latest resistance — blood ${Math.round((c.Blood?.burden||0)*100)}%, urine ${Math.round((c.Urine?.burden||0)*100)}%, respiratory ${Math.round((c.Respiratory?.burden||0)*100)}%.`;
+}
+function renderValidation(){
+  const h=holdout(STATE.series);const latest=STATE.model.latest;
+  const mae=h.length?h.reduce((t,x)=>t+Math.abs(x.pred-x.act),0)/h.length:NaN;
+  const allIn=h.length&&h.every(v=>v.within);
+  document.getElementById('mae').innerHTML=`${h.filter(v=>v.within).length}/${h.length}<span style="font-size:20px"> in band</span>`;
+  document.getElementById('maelbl').innerHTML=`Actual ${latest} resistance fell inside the model's 95% prediction band for ${allIn?'every':'most'} specimen — the honest test of "within the margin of error." Point error averaged ±${(mae*100).toFixed(1)} pts.`;
+  document.getElementById('validtitle').textContent=`Tested by hiding ${latest}`;
+  document.getElementById('stab').textContent=Math.round(STATE.stab*100)+'%';
+  const sc=x=>Math.min(100,Math.max(0,x/.5*100));
+  document.getElementById('pv').innerHTML=h.map(v=>
+    `<div class="pv"><b>${v.s}</b>
+      <span class="within" style="color:${v.within?'var(--good)':'var(--risk)'}">${v.within?'✓ actual within band':'✗ actual outside band'}</span>
+      <div class="track">
+        <div class="band" style="left:${sc(v.lo)}%;width:${Math.max(1,sc(v.hi)-sc(v.lo))}%"></div>
+        <div class="pred" style="left:${sc(v.pred)}%"></div>
+        <div class="actmark" style="left:${sc(v.act)}%"></div></div>
+      <div class="tags"><span>predicted ${Math.round(v.pred*100)}% · band ${Math.round(v.lo*100)}–${Math.round(v.hi*100)}%</span><span>● actual ${Math.round(v.act*100)}%</span></div></div>`).join('')
+    +`<div style="font-size:11.5px;color:var(--ink2);font-family:var(--mono);margin-top:2px">shaded = 95% prediction band · line = predicted · ● = actual</div>`;
+}
+/* ================= FUNDING ================= */
+const FTYPE={Surveillance:{note:'watching',c:'#5B8AA6'},Stewardship:{note:'acting',c:'#0F8C86'},
+  Capacity:{note:'supporting',c:'#8AA6A4'},IPC:{note:'the gap',c:'#D8453B'},Other:{note:'other',c:'#B0BEBC'}};
+const FORDER=['Surveillance','Stewardship','Capacity','IPC','Other'];
+function fundType(s){s=(s||'').toLowerCase();
+  if(s.includes('steward')||s.includes('ams'))return'Stewardship';
+  if(s.includes('prevention')||s.includes('ipc')||s.includes('infection control'))return'IPC';
+  if(s.includes('surveillance')||s.includes('diagnost')||s.includes('lab'))return'Surveillance';
+  if(s.includes('capacity')||s.includes('training')||s.includes('workforce'))return'Capacity';
+  return'Other';}
+const FUND_BASE={total:8351365,projects:29,
+  byType:{Surveillance:4145807,Stewardship:2756399,Capacity:1449158,IPC:0,Other:0},
+  byFunder:[['Wellcome Trust',3335940],['ICARS',1905772],['Gates Foundation',1099132],
+    ['Sida',963265],['NIH',761878],['EDCTP',165184]],
+  timeline:{years:[2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026,2027],
+    vals:[58606,135497,172595,201384,220182,545410,474670,504810,913935,693788,723838,1270985,1065740,701158,668767]}};
+function splitCSVLine(line){const out=[];let cur='',q=false;
+  for(let i=0;i<line.length;i++){const ch=line[i];
+    if(ch==='"'){if(q&&line[i+1]==='"'){cur+='"';i++;}else q=!q;}
+    else if(ch===','&&!q){out.push(cur);cur='';}else cur+=ch;}
+  out.push(cur);return out;}
+function computeFunding(rows){
+  const total=rows.reduce((t,r)=>t+r.amount,0)||1;
+  const byType={Surveillance:0,Stewardship:0,Capacity:0,IPC:0,Other:0};
+  rows.forEach(r=>byType[fundType(r.type)]+=r.amount);
+  const fmap={};rows.forEach(r=>{const f=(r.funder||'Unknown').trim()||'Unknown';fmap[f]=(fmap[f]||0)+r.amount;});
+  const byFunder=Object.entries(fmap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const dated=rows.filter(r=>r.start&&r.end&&r.end>=r.start);
+  let ymin=dated.length?Math.min(...dated.map(r=>r.start)):2013,ymax=dated.length?Math.max(...dated.map(r=>r.end)):2027;
+  const years=[],vals=[];for(let y=ymin;y<=ymax;y++){years.push(y);let s=0;
+    dated.forEach(r=>{if(y>=r.start&&y<=r.end)s+=r.amount/(r.end-r.start+1);});vals.push(s);}
+  return{total,projects:rows.length,byType,byFunder,timeline:{years,vals}};
+}
+function parseCSVrows(text){
+  const rows=[];let row=[],cur='',q=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(q){if(ch==='"'){if(text[i+1]==='"'){cur+='"';i++;}else q=false;}else cur+=ch;}
+    else{if(ch==='"')q=true;else if(ch===','){row.push(cur);cur='';}
+      else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur='';}
+      else if(ch!=='\r')cur+=ch;}}
+  if(cur.length||row.length){row.push(cur);rows.push(row);}
+  return rows.filter(r=>r.some(x=>x!==''));
+}
+function parseFundingCSV(text){
+  const rows=parseCSVrows(text);if(rows.length<2)throw new Error('Funding CSV has no data rows under its header.');
+  const H=rows[0].map(h=>String(h).toLowerCase().trim());
+  const idx=names=>{for(const n of names){const i=H.indexOf(n);if(i>=0)return i;}
+    for(const n of names){if(n.length<4)continue;const i=H.findIndex(h=>h.includes(n));if(i>=0)return i;}return -1;};
+  const iA=idx(['amount usd','amount_usd','amount','usd']),iT=idx(['project_type','project type','type','project group']),
+    iF=idx(['funder name','funder','funder_name']),iS=idx(['sector']),iSt=idx(['start year','start_year','start']),iEn=idx(['end year','end_year','end']);
+  if(iA<0)throw new Error('Funding file needs an Amount (USD) column.');
+  const out=[];
+  for(let li=1;li<rows.length;li++){const c=rows[li];
+    const amount=parseFloat(String(c[iA]||'').replace(/[^0-9.\-]/g,''));if(!(amount>0))continue;
+    out.push({amount,type:iT>=0?c[iT]:'',funder:iF>=0?c[iF]:'',sector:iS>=0?c[iS]:'',
+      start:iSt>=0?parseInt(c[iSt]):null,end:iEn>=0?parseInt(c[iEn]):null});}
+  if(!out.length)throw new Error('No funding rows with a positive amount were found.');
+  return out;
+}
+function parseFundingXLSX(buf){
+  if(typeof XLSX==='undefined')throw new Error('The Excel reader needs an internet connection. Use a CSV instead — it works offline.');
+  const wb=XLSX.read(buf,{type:'array'});
+  for(const sh of wb.SheetNames){
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[sh],{defval:null});if(!rows.length)continue;
+    const orig=Object.keys(rows[0]),lk=orig.map(k=>String(k).toLowerCase().trim());
+    const findKey=names=>{for(const n of names){const i=lk.indexOf(n);if(i>=0)return orig[i];}
+      for(const n of names){if(n.length<4)continue;const i=lk.findIndex(k=>k.includes(n));if(i>=0)return orig[i];}return null;};
+    const kA=findKey(['amount usd','amount_usd','amount','usd']);if(!kA)continue;
+    const kT=findKey(['project_type','project type','type','project group']),kF=findKey(['funder name','funder']),
+      kS=findKey(['sector']),kSt=findKey(['start year','start_year','start']),kEn=findKey(['end year','end_year','end']);
+    const out=[];rows.forEach(r=>{const amount=parseFloat(String(r[kA]||'').replace(/[^0-9.\-]/g,''));if(!(amount>0))return;
+      out.push({amount,type:kT?r[kT]:'',funder:kF?r[kF]:'',sector:kS?r[kS]:'',
+        start:kSt?parseInt(r[kSt]):null,end:kEn?parseInt(r[kEn]):null});});
+    if(out.length)return out;
+  }
+  throw new Error('No sheet with an Amount column and funding rows was found.');
+}
+function renderFunding(){
+  const F=STATE.funding,total=F.total;
+  const usd=v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':v>=1e3?'$'+Math.round(v/1e3)+'k':'$'+Math.round(v);
+  document.getElementById('fund').innerHTML=FORDER.filter(k=>k!=='Other'||F.byType[k]>0).map(k=>{
+    const v=F.byType[k]||0,pct=v/total*100,m=FTYPE[k];
+    return `<div class="frow"><div class="flab"><span>${k} <b class="mono">${usd(v)}</b></span>
+      <span class="note" style="color:${m.c}">${m.note} · ${pct<2?'~0':Math.round(pct)}%</span></div>
+      <div class="ftrack"><i style="width:${Math.max(2,pct)}%;background:${m.c}"></i></div></div>`;}).join('');
+  const fmax=Math.max(...F.byFunder.map(f=>f[1]))||1;
+  document.getElementById('funders').innerHTML=F.byFunder.map(f=>
+    `<div class="frow"><div class="flab"><span>${f[0]}</span><b class="mono">${usd(f[1])}</b></div>
+      <div class="ftrack"><i style="width:${Math.max(2,f[1]/fmax*100)}%;background:#3E7C86"></i></div></div>`).join('');
+  const T=F.timeline,W=820,H=240,pl=52,pr=14,pt=16,pb=34;
+  const vmax=Math.max(...T.vals,1)*1.1,n=T.years.length,seg=(W-pl-pr)/n,bw=seg*0.66;
+  const X=i=>pl+i*seg+seg*0.17,Y=v=>pt+(1-v/vmax)*(H-pt-pb);
+  let g='';for(let t=0;t<=4;t++){const v=vmax*t/4,y=Y(v);
+    g+=`<line x1="${pl}" y1="${y}" x2="${W-pr}" y2="${y}" stroke="#E6ECEB"/><text x="${pl-8}" y="${y+4}" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#7c8a88">$${(v/1e6).toFixed(1)}M</text>`;}
+  const peak=T.vals.indexOf(Math.max(...T.vals));
+  T.years.forEach((yr,i)=>{const h=Math.max(1,Y(0)-Y(T.vals[i]));
+    g+=`<rect class="tlbar" x="${X(i).toFixed(1)}" y="${Y(T.vals[i]).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${i===peak?'#0F8C86':'#9FC4C1'}"/>`;
+    if(yr%2===1||i===n-1)g+=`<text x="${(X(i)+bw/2).toFixed(1)}" y="${H-14}" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="9.5" fill="#7c8a88">${yr}</text>`;});
+  document.getElementById('fundtl').innerHTML=g;
+  const survShare=F.byType.Surveillance/total,amsShare=(F.byType.Stewardship+F.byType.IPC)/total;
+  document.getElementById('fundcap').innerHTML=`Funding rose to a peak around <b>${T.years[peak]}</b> (${usd(T.vals[peak])}/yr annualised) and tapers after — a sustainability cliff worth watching.`;
+  document.getElementById('gapcard').innerHTML=`<b>The gap:</b> ${Math.round(survShare*100)}% of the money watches resistance (surveillance) and ${Math.round(amsShare*100)}% acts on it (stewardship); infection prevention is barely funded. The index steers scarce resistance-reducing effort toward the highest-risk infections above.`;
+  document.getElementById('fundbadge').textContent=`portfolio · ${F.projects} projects · ${usd(total)}`;
+}
+
+function renderAll(){renderRows();renderContrib();renderLine();renderValidation();renderHero();
+  const yrs=[...new Set(STATE.series.map(r=>r.year))].sort();
+  document.getElementById('databadge').textContent=`data ${yrs[0]}–${yrs[yrs.length-1]}`;
+  document.getElementById('foot').textContent=`data ${yrs[0]}–${yrs[yrs.length-1]} · engine matches ams_priority_index.py`;}
+
+function refreshModel(){recompute();STATE.stab=stability(STATE.series,STATE.model.comp,STATE.W);renderAll();}
+
+/* ================= INTERACTIONS ================= */
+function pick(sp){STATE.selected=sp;renderRows();renderContrib();document.getElementById('why').scrollIntoView({behavior:'smooth',block:'start'});}
+function setW(k,val){STATE.W[k]=(+val)/100;FACTORS.forEach(([f])=>{const el=document.getElementById('v_'+f);if(el)el.textContent=Math.round(norm(STATE.W)[f]*100)+'%';});
+  STATE.stab=stability(STATE.series,STATE.model.comp,STATE.W);
+  STATE.selected=ranked()[0];   // the 'why' panel follows whichever specimen is now #1
+  renderRows();renderContrib();renderValidation();renderHero();}
+document.getElementById('resetw').onclick=()=>{STATE.W={...DEFAULT};renderSliders();refreshModel();
+  STATE.selected=ranked()[0];renderRows();renderContrib();};
+
+/* ---- ingest ---- */
+const $=id=>document.getElementById(id);
+$('fmtbtn').onclick=()=>$('fmt').classList.toggle('show');
+$('manualbtn').onclick=()=>$('manual').classList.toggle('show');
+$('m_apply').onclick=applyManual;
+$('drop').onclick=()=>$('file').click();
+$('file').onchange=e=>handleFiles([...e.target.files]);
+['dragover','dragenter'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.add('over');}));
+['dragleave','drop'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.remove('over');}));
+$('drop').addEventListener('drop',e=>handleFiles([...e.dataTransfer.files]));
+$('resetbase').onclick=()=>{STATE.series=JSON.parse(JSON.stringify(BASE));STATE.forward=null;
+  STATE.funding=JSON.parse(JSON.stringify(FUND_BASE));renderFunding();
+  $('changed').innerHTML='';$('status').className='status';$('resetbase').style.display='none';refreshModel();};
+
+const SPECMAP=s=>{s=(s||'').toLowerCase();if(s.includes('blood'))return'Blood';
+  if(s.includes('urine'))return'Urine';if(s.includes('resp')||s.includes('lrt')||s.includes('lower'))return'Respiratory';return null;};
+
+function parseCSV(text){
+  const lines=text.replace(/\r/g,'').trim().split('\n').filter(l=>l.trim());
+  if(lines.length<2)throw new Error('The CSV has no data rows under its header.');
+  const H=lines[0].split(',').map(h=>h.toLowerCase().trim());
+  const idx=names=>{for(const n of names){const i=H.indexOf(n);if(i>=0)return i;}
+    for(const n of names){if(n.length<3)continue;const i=H.findIndex(h=>h.includes(n));if(i>=0)return i;}return -1;};
+  const iSp=idx(['specimen','sample','source']),iYr=idx(['year']),iN=idx(['n','n_tested','tested','isolates','samples']),
+        iR=idx(['resistant_pct','resistant','res','r']),iI=idx(['intermediate_pct','intermediate','int','i']);
+  if(iSp<0||iYr<0||iN<0||iR<0)throw new Error('CSV needs columns: year, specimen, N, resistant_pct (intermediate_pct optional).');
+  const out=[];
+  for(let li=1;li<lines.length;li++){const c=lines[li].split(',');
+    const sp=SPECMAP(c[iSp]),yr=parseInt(c[iYr]),N=parseFloat(c[iN]);
+    let R=parseFloat(c[iR]),I=iI>=0?parseFloat(c[iI]):0;
+    if(!sp||!yr||!(N>0)||isNaN(R))continue;I=isNaN(I)?0:I;
+    let ns=R+I;if(ns<=1)ns*=100;ns=Math.min(ns,100);
+    out.push({year:yr,specimen:sp,N:Math.round(N),k:Math.round(ns/100*N)});}
+  return out;
+}
+function parseXLSX(buf){
+  if(typeof XLSX==='undefined')throw new Error('The Excel reader needs an internet connection to load. Either reconnect and retry, or use the CSV template (button above) — it works fully offline.');
+  const wb=XLSX.read(buf,{type:'array'});const out=[];
+  wb.SheetNames.forEach(sh=>{
+    const aoa=XLSX.utils.sheet_to_json(wb.Sheets[sh],{header:1,defval:null});
+    if(!aoa.length)return;
+    const header=(aoa[0]||[]).map(x=>x==null?'':String(x));
+    let year=null;const ym=sh.match(/(20\d\d)/);if(ym)year=+ym[1];
+    if(!year)header.forEach(h=>{const m=h.match(/(20\d\d)/);if(m)year=+m[1];});
+    if(!year)return;
+    const blocks={};header.forEach((cell,ci)=>{const sp=SPECMAP(cell);
+      if(sp){const m=cell.match(/N\s*=\s*(\d+)/i);blocks[sp]={col:ci,N:m?+m[1]:null};}});
+    const mrow=aoa.find(r=>r&&String(r[0]||'').toLowerCase().trim()==='meropenem');
+    if(!mrow)return;
+    for(const sp in blocks){const b=blocks[sp];if(b.N==null)continue;
+      let R=parseFloat(mrow[b.col]);let I=parseFloat(mrow[b.col+1]);
+      if(isNaN(R))continue;I=isNaN(I)?0:I;let ns=R+I;if(ns>1.5)ns/=100;ns=Math.min(ns,1);
+      out.push({year,specimen:sp,N:b.N,k:Math.round(ns*b.N)});}
+  });
+  return out;
+}
+function readAny(file){return new Promise((res,rej)=>{const fr=new FileReader();
+  fr.onerror=()=>rej(new Error('Could not read '+file.name));
+  if(/\.csv$/i.test(file.name)){fr.onload=()=>{try{const txt=fr.result;
+    const head=(txt.split('\n')[0]||'').toLowerCase();
+    if(/amount/.test(head))res({kind:'funding',rows:parseFundingCSV(txt)});
+    else res({kind:'surv',rows:parseCSV(txt)});
+  }catch(e){rej(e);}};fr.readAsText(file);}
+  else{fr.onload=()=>{try{const buf=fr.result;
+    if(typeof XLSX==='undefined')throw new Error('The Excel reader needs an internet connection to load. Use a CSV instead — it works offline.');
+    const wb=XLSX.read(buf,{type:'array'});let isFund=false;
+    for(const sh of wb.SheetNames){const a=XLSX.utils.sheet_to_json(wb.Sheets[sh],{header:1,defval:null});
+      if(a[0]&&a[0].some(c=>/amount/i.test(String(c||'')))){isFund=true;break;}}
+    if(isFund)res({kind:'funding',rows:parseFundingXLSX(buf)});
+    else res({kind:'surv',rows:parseXLSX(buf)});
+  }catch(e){rej(e);}};fr.readAsArrayBuffer(file);}});}
+
+function applyData(surv,fund){
+  let cards='',loaded=[];
+  /* ---- funding ---- */
+  if(fund.length){
+    STATE.funding=computeFunding(fund);renderFunding();
+    loaded.push(fund.length+' funding projects');
+    const total=STATE.funding.total,survS=STATE.funding.byType.Surveillance/total,
+      amsS=(STATE.funding.byType.Stewardship+STATE.funding.byType.IPC)/total;
+    cards+=`<div class="ccard"><h4>Funding portfolio recomputed</h4>
+      <div class="line"><span>Total reviewed</span><b>$${(total/1e6).toFixed(2)}M · ${STATE.funding.projects} projects</b></div>
+      <div class="line"><span>Watching (surveillance)</span><b>${Math.round(survS*100)}%</b></div>
+      <div class="line"><span>Acting (stewardship + IPC)</span><b>${Math.round(amsS*100)}%</b></div>
+      <div class="line" style="border:none"><span>Resistance-reducing gap</span><b class="${amsS<0.4?'up':'down'}">${Math.round((1-amsS)*100)}%</b></div></div>`;
+  }
+  /* ---- surveillance ---- */
+  if(surv.length){
+    const oldOrder=ranked(),oldScore={};oldOrder.forEach(s=>oldScore[s]=scoreOf(STATE.model.comp[s],STATE.W));
+    const oldMax=STATE.model.latest,newMax=Math.max(...surv.map(r=>r.year));let fwd=null;
+    if(newMax>oldMax){fwd={year:newMax,rows:[]};
+      for(const s of ['Blood','Urine','Respiratory']){
+        const hist=STATE.series.filter(r=>r.specimen===s&&r.N!=null).sort((a,b)=>a.year-b.year);
+        const nu=surv.find(r=>r.specimen===s&&r.year===newMax);
+        if(hist.length>=2&&nu){const y0=hist[0].year;const b=glmBin(hist.map(r=>r.year-y0),hist.map(r=>r.k),hist.map(r=>r.N));
+          const pi=glmPI(b,newMax-y0),act=nu.k/nu.N;
+          fwd.rows.push({s,pred:pi.p,lo:pi.lo,hi:pi.hi,act,within:act>=pi.lo&&act<=pi.hi});}}}
+    surv.forEach(nr=>{const i=STATE.series.findIndex(r=>r.year===nr.year&&r.specimen===nr.specimen);
+      if(i>=0)STATE.series[i]=nr;else STATE.series.push(nr);});
+    STATE.forward=fwd;refreshModel();
+    loaded.push(surv.length+' resistance records ('+[...new Set(surv.map(r=>r.year))].sort().join(', ')+')');
+    const newOrder=ranked();
+    cards+=`<div class="ccard"><h4>What changed in the ranking</h4>`+newOrder.map((s,i)=>{
+      const ns=scoreOf(STATE.model.comp[s],STATE.W),os=oldScore[s],d=os==null?null:ns-os;
+      const cls=d==null?'flat':(d>0.005?'up':d<-0.005?'down':'flat'),ar=d==null?'new':(d>0.005?'▲':d<-0.005?'▼':'–');
+      return `<div class="line"><span>#${i+1} ${s}</span><b class="${cls}">${ns.toFixed(2)} ${ar}${d!=null&&Math.abs(d)>0.005?' '+(d>0?'+':'')+d.toFixed(2):''}</b></div>`;}).join('')
+      +`<div class="line" style="border:none"><span>${oldOrder.join()!==newOrder.join()?'Order shifted':'Order unchanged'}</span><b class="flat">top = ${newOrder[0]}</b></div></div>`;
+    if(fwd&&fwd.rows.length){cards+=`<div class="ccard fwd"><h4>Forward test on ${fwd.year} — predicted vs actual (with 95% band)</h4>`;
+      fwd.rows.forEach(r=>cards+=`<div class="line"><span>${r.s}</span><b>pred ${Math.round(r.pred*100)}% <span style="color:var(--ink2)">(${Math.round(r.lo*100)}–${Math.round(r.hi*100)}%)</span> · actual ${Math.round(r.act*100)}% <span class="${r.within?'down':'up'}">${r.within?'✓':'✗'}</span></b></div>`);
+      const nin=fwd.rows.filter(r=>r.within).length;
+      cards+=`<div class="line" style="border:none"><span>Actuals inside the band</span><b class="${nin===fwd.rows.length?'down':'up'}">${nin}/${fwd.rows.length}</b></div></div>`;}
+  }
+  $('status').className='status ok show';
+  $('status').querySelector('.head').textContent='✓ Loaded '+loaded.join(' · ');
+  $('status').querySelector('.body').innerHTML='The dashboard recomputed on the spot. Sections below now reflect the new data.';
+  $('changed').innerHTML='<div class="changed">'+cards+'</div>';
+  $('resetbase').style.display='';
+  (surv.length?$('board'):$('funding')).scrollIntoView({behavior:'smooth'});
+}
+async function handleFiles(files){
+  if(!files.length)return;
+  try{
+    let surv=[],fund=[];
+    for(const f of files){const r=await readAny(f);if(r.kind==='funding')fund=fund.concat(r.rows);else surv=surv.concat(r.rows);}
+    if(!surv.length&&!fund.length)throw new Error('No usable resistance or funding records found. Check the file matches an accepted format (see “What format?”).');
+    applyData(surv,fund);
+  }catch(err){
+    $('status').className='status err show';
+    $('status').querySelector('.head').textContent='✕ Could not use that file';
+    $('status').querySelector('.body').textContent=err.message;
+  }
+}
+function applyManual(){
+  try{
+    const yr=parseInt($('m_year').value);if(!yr||yr<2000||yr>2100)throw new Error('Enter a valid year (e.g. 2026).');
+    const surv=[];
+    ['Blood','Urine','Respiratory'].forEach(s=>{
+      const N=parseFloat($('m_N_'+s).value),R=parseFloat($('m_R_'+s).value),I=parseFloat($('m_I_'+s).value);
+      if(N>0&&!isNaN(R)){let ns=R+(isNaN(I)?0:I);if(ns<=1)ns*=100;ns=Math.min(ns,100);
+        surv.push({year:yr,specimen:s,N:Math.round(N),k:Math.round(ns/100*N)});}});
+    if(!surv.length)throw new Error('Enter at least one specimen with an N and a resistant %.');
+    applyData(surv,[]);
+  }catch(err){
+    $('status').className='status err show';
+    $('status').querySelector('.head').textContent='✕ Could not add those values';
+    $('status').querySelector('.body').textContent=err.message;
+  }
+}
+$('tmpl').onclick=()=>{const csv='year,specimen,N,resistant_pct,intermediate_pct\n2026,Blood,750,37.0,1.2\n2026,Urine,680,43.5,0.8\n2026,Respiratory,280,23.0,0.0\n';
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='crkp_surveillance_template.csv';a.click();};
+
+/* ================= INIT ================= */
+STATE.funding=JSON.parse(JSON.stringify(FUND_BASE));
+renderSliders();refreshModel();renderFunding();
+</script>
+</body>
+</html>

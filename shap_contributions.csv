@@ -1,0 +1,16 @@
+specimen,factor,contribution
+Blood,Current resistance,0.06473197747458297
+Blood,Rising speed,0.11240578381289892
+Blood,Patients affected,0.039569892473118276
+Blood,Clinical severity,0.11515151515151514
+Blood,= final risk score,0.8970979662118745
+Respiratory,Current resistance,-0.23236598873729153
+Respiratory,Rising speed,-0.18759421618710106
+Respiratory,Patients affected,-0.06043010752688173
+Respiratory,Clinical severity,-0.08484848484848485
+Respiratory,= final risk score,0.0
+Urine,Current resistance,0.1676340112627085
+Urine,Rising speed,0.07518843237420214
+Urine,Patients affected,0.020860215053763433
+Urine,Clinical severity,-0.03030303030303032
+Urine,= final risk score,0.7986184256874029
